@@ -1,0 +1,52 @@
+#!/bin/bash
+
+####create a user, add to ssh and sudoers, add ssh key-based authentication
+
+#make user
+/usr/sbin/adduser $NEW_USER  #ok
+passwd $NEW_USER  #fail
+
+#add user to sshd
+echo 'AllowUsers $NEW_USER' >> /etc/ssh/sshd_config | /etc/init.d/sshd restart  #ok
+
+#add user to sudoers
+sudo echo '$NEW_USER        ALL=(ALL)       ALL' >> /etc/sudoers   #ok
+
+#create ssh key authentication
+mkdir /home/$NEW_USER/.ssh
+chown $NEW_USER:$NEW_USER /home/$NEW_USER/.ssh -r
+cd /home/$NEW_USER/.ssh
+sudo -u $NEW_USER ssh-keygen -t rsa
+cat $KEY >> authorized_keys
+chmod 700 /home/$NEW_USER/.ssh -r
+chmod 600 /home/$NEW_USER/.ssh/authorized_keys 
+
+
+#### Install MySQL 5.5, PHP 5.3 and Apache
+
+#epel/remi for CentOS 5.6
+rpm -Uvh http://download.fedora.redhat.com/pub/epel/5/i386/epel-release-5-4.noarch.rpm  #ok
+rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-5.rpm  #ok
+
+#epel/remi for CentOS 6
+rpm -Uvh http://download.fedora.redhat.com/pub/epel/6/i386/epel-release-6-5.noarch.rpm
+rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-6.rpm
+
+#Install mysql 5.5
+yum --enablerepo=remi,remi-test install mysql mysql-server
+
+/etc/init.d/mysqld start
+mysqladmin -u root password $MYSQL_ROOT
+chkconfig --levels 235 mysqld on
+
+#install php 5.3
+yum --enablerepo=remi install httpd php php-common
+yum --enablerepo=remi install php-pear php-pdo php-mysql php-pgsql php-pecl-memcache php-gd php-mbstring php-mcrypt php-xml
+
+/etc/init.d/httpd start
+chkconfig --levels 235 httpd on
+
+
+
+
+
